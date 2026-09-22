@@ -1,0 +1,25 @@
+name: Live Media Forwarder Cloud Pipeline
+
+on:
+  workflow_dispatch:
+
+jobs:
+  run-bridge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pull Core Repository Assets
+        uses: actions/checkout@v4
+
+      - name: Boot Up Node.js Environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Deploy Live Mirror Process
+        env:
+          TOKEN: ${{ secrets.TOKEN }}
+          SOURCE_SERVER: ${{ secrets.SOURCE_SERVER }}
+          WEBHOOKS: ${{ secrets.WEBHOOKS }}
+        run: |
+          npm install
+          npm start
