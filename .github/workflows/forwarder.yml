@@ -7,56 +7,19 @@ jobs:
   run-bridge:
     runs-on: ubuntu-latest
     steps:
-      - name: Create Dynamic App Directory
-        run: |
-          mkdir mirror-app && cd mirror-app
-          npm init -y
-          npm install discord.js-selfbot-v13
-
-      - name: Write Isolated Script Configuration
-        run: |
-          cat << 'EOF' > mirror-app/index.js
-          const { Client } = require('discord.js-selfbot-v13');
-          const { WebhookClient } = require('discord.js');
-
-          const client = new Client({ checkUpdate: false });
-          const webhook = new WebhookClient({ url: process.env.WEBHOOKS });
-          const targetExtensions = ['.mp4', '.mov', '.webm', '.mkv', '.avi', '.jpg', '.jpeg', '.png', '.gif', '.webp'];
-
-          client.on('ready', () => {
-              console.log(`Pipeline Connected Online as: ${client.user.tag}`);
-              console.log(`Scanning Server ID [${process.env.SOURCE_SERVER}] for images and video contents...`);
-          });
-
-          client.on('messageCreate', async (message) => {
-              if (!message.guild || message.guild.id !== process.env.SOURCE_SERVER) return;
-              if (message.attachments.size > 0) {
-                  const mediaUrls = message.attachments
-                      .map(att => att.url)
-                      .filter(url => {
-                          const cleanUrl = url.toLowerCase().split('?')[0];
-                          return targetExtensions.some(ext => cleanUrl.endsWith(ext));
-                      });
-
-                  if (mediaUrls.length > 0) {
-                      console.log(`Media located in #${message.channel.name}! Transmitting...`);
-                      await webhook.send({
-                          content: `**From channel #${message.channel.name}**\n${mediaUrls.join('\n')}`,
-                          username: message.author.username,
-                          avatarURL: message.author.displayAvatarURL()
-                      }).catch(err => console.error("Webhook Error:", err));
-                  }
-              }
-          });
-
-          client.login(process.env.TOKEN);
-          EOF
-
-      - name: Execute Live Mirror Process
+      - name: Launch Prebuilt Live Container
         env:
-          TOKEN: \${{ secrets.TOKEN }}
-          SOURCE_SERVER: \${{ secrets.SOURCE_SERVER }}
-          WEBHOOKS: \${{ secrets.WEBHOOKS }}
+          TOKEN: ${{ secrets.TOKEN }}
+          READING_CHANNELS: ${{ secrets.SOURCE_SERVER }}
+          WEBHOOKS: ${{ secrets.WEBHOOKS }}
         run: |
-          cd mirror-app
-          node index.js
+          docker run -d \
+            -e TOKEN="$TOKEN" \
+            -e READING_CHANNELS="$READING_CHANNELS" \
+            -e WEBHOOKS="$WEBHOOKS" \
+            --name cloud-forwarder \
+            viossat/discord-forwarder
+          
+          echo "Container started successfully."
+          sleep 5
+          docker logs cloud-forwarder
