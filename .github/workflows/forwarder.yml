@@ -13,13 +13,17 @@ jobs:
       - name: Boot Up Node.js Environment
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 22
+
+      - name: Create JSON Configuration File
+        run: |
+          echo '{
+            "TOKEN": "${{ secrets.TOKEN }}",
+            "READING_CHANNELS": "${{ secrets.SOURCE_SERVER }}",
+            "WEBHOOKS": "${{ secrets.WEBHOOKS }}"
+          }' > config.json
 
       - name: Deploy Live Mirror Process
-        env:
-          TOKEN: ${{ secrets.TOKEN }}
-          SOURCE_SERVER: ${{ secrets.SOURCE_SERVER }}
-          WEBHOOKS: ${{ secrets.WEBHOOKS }}
         run: |
           npm install
           npm start
